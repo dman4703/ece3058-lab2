@@ -25,6 +25,7 @@ module IF_Stage (
   // Inputs from Decode
   input pc_mux pc_mux_ip,
 	input logic stall_ip,										// From stall control in Decode stage
+	input logic flush_ip,
 
   // Inputs from ALU
   input logic [31:0] alu_result_ip,
@@ -53,10 +54,17 @@ module IF_Stage (
 
     if (reset == 1'b1) 
       Next_PC = 0;
+    else if (stall_ip == 1'b1)
+      Next_PC = pc_addr;  // Hold PC during stall
     else begin
       unique case (pc_mux_ip)
         NEXTPC: Next_PC = pc_addr + 4;
-        ALU_RESULT: Next_PC = alu_result_valid_ip ? alu_result_ip: pc_addr; // If not valid, then stall until valid
+        ALU_RESULT: begin
+          if (alu_result_valid_ip)
+            Next_PC = alu_result_ip;
+          else
+            Next_PC = pc_addr + 4;
+        end
         default: Next_PC = pc_addr + 4;
       endcase
     end
@@ -71,7 +79,12 @@ module IF_Stage (
 			instr_data_op <= 0;
 			instr_pc_addr_op <= 0;
 		end
-		else if (stall_ip == 1'b1) begin 
+		else if (flush_ip == 1'b1) begin
+			instr_pc_addr_op <= 0;
+            instr_valid_op <= 0;
+            instr_data_op <= 0;
+        end 
+		else if (stall_ip == 1'b1) begin  
 			instr_pc_addr_op <= instr_pc_addr_op;
 			instr_valid_op <= instr_valid_op;
 			instr_data_op <= instr_data_op;

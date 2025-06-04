@@ -21,7 +21,7 @@ module ID_Stage (
   input logic reset,
   input logic [31:0] pc,
   input logic [31:0] pc4, 
-
+  input logic flush_ip, // flush input so D stage can clear pipeline
   // Inputs from MEM
   input logic instr_data_valid_ip,            // If the instruction sent from MEM to decode is valid
   input logic [31:0] instr_data_ip,           // The instruction to deocde from the Fetch module
@@ -234,7 +234,7 @@ module ID_Stage (
 
   // ID_EX Pipeline Buffer
   always_ff @(posedge clock) begin
-    if ((stall_op == 1'b1) | (reset == 1'b1)) begin
+    if ((stall_op == 1'b1) | (flush_ip == 1'b1) | (reset == 1'b1)) begin // check flush signal
       // Instructions to send to EX Stage
       alu_en_op <= 0;
       alu_operator_op <= ALU_NOP;
