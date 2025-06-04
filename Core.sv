@@ -206,9 +206,11 @@ module Core (
 		.alu_operand_b_ip(alu_operand_b),
 
 		// Signals from Forw Controller
-		.fa_mux_ip(FA),
-		.fb_mux_ip(FB),
-		.fw_wb_data(writeback_data),
+		    .fa_mux_ip(FA),
+            .fb_mux_ip(FB),
+            .fw_wb_data(writeback_data),
+            .ex_result_fwd_ip(ex_alu_result_pt),
+            .mem_result_fwd_ip(load_mem_data),
 
 		// Pass-Through Signals to Memory
 		.lsu_enable_pt_ip(id_lsu_en_pt),

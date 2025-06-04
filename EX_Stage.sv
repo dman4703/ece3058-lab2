@@ -29,6 +29,8 @@ module EX_Stage (
   input forward_mux_code fa_mux_ip,
   input forward_mux_code fb_mux_ip,
   input logic [31:0] fw_wb_data,
+  input logic [31:0] ex_result_fwd_ip,
+  input logic [31:0] mem_result_fwd_ip,
 
   // Pass-Through Signals to Memory
   input logic lsu_enable_pt_ip,
@@ -104,36 +106,30 @@ module EX_Stage (
   logic [31:0] alu_operand_a;
   logic [31:0] alu_operand_b;
 
-  // Forward Values for Source Register 1
+    // Forward Values for Source Register 1
   always @(*) begin
-    case (fa_mux_ip) 
+    case (fa_mux_ip)
       /**
       * Task 2
-      * Based on the Foward A Mux, how do we select the appropriate values? 
-      *
+      * Based on the Forward A Mux, how do we select the appropriate values?
       */
-      EX_RESULT_SELECT,
-      MEM_RESULT_SELECT,
-      WB_RESULT_SELECT: begin
-        alu_operand_a = fw_wb_data;
-      end
-      default:  alu_operand_a = alu_operand_a_ip;
+      EX_RESULT_SELECT: alu_operand_a = ex_result_fwd_ip;
+      MEM_RESULT_SELECT: alu_operand_a = mem_result_fwd_ip;
+      WB_RESULT_SELECT: alu_operand_a = fw_wb_data;
+      default: alu_operand_a = alu_operand_a_ip;
     endcase
   end
 
   // Forward Values for Source Register 2
   always @(*) begin
-    case (fb_mux_ip) 
+    case (fb_mux_ip)
       /**
       * Task 2
-      * Based on the Foward B Mux, how do we select the appropriate values? 
-      *
+      * Based on the Forward B Mux, how do we select the appropriate values?
       */
-      EX_RESULT_SELECT,
-      MEM_RESULT_SELECT,
-      WB_RESULT_SELECT: begin
-        alu_operand_b = fw_wb_data;
-      end
+      EX_RESULT_SELECT: alu_operand_b = ex_result_fwd_ip;
+      MEM_RESULT_SELECT: alu_operand_b = mem_result_fwd_ip;
+      WB_RESULT_SELECT: alu_operand_b = fw_wb_data;
       default: alu_operand_b = alu_operand_b_ip;
     endcase
   end
