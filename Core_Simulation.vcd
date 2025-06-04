@@ -1,5 +1,5 @@
 $date
-	Wed Jun  4 14:23:26 2025
+	Wed Jun  4 14:47:02 2025
 $end
 $version
 	Icarus Verilog
@@ -711,8 +711,8 @@ bz H#
 b0 G#
 bx F#
 bx E#
-bx D#
-bx C#
+b0 D#
+b0 C#
 bx B#
 bx A#
 bx @#
@@ -873,8 +873,8 @@ bx b
 bz a
 bx `
 bx _
-bx ^
-bx ]
+b0 ^
+b0 ]
 x\
 bx [
 bx Z
@@ -887,8 +887,8 @@ bx T
 bx S
 bx R
 bx Q
-bx P
-bx O
+b0 P
+b0 O
 xN
 b0 M
 0L
@@ -961,12 +961,6 @@ b101 !"
 b10 '"
 b0 t
 bz b
-b0 O
-b0 ^
-b0 D#
-b0 P
-b0 ]
-b0 C#
 b0 L#
 b0 V#
 b0 K#

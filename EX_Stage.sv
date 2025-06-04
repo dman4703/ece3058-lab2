@@ -112,6 +112,11 @@ module EX_Stage (
       * Based on the Foward A Mux, how do we select the appropriate values? 
       *
       */
+      EX_RESULT_SELECT,
+      MEM_RESULT_SELECT,
+      WB_RESULT_SELECT: begin
+        alu_operand_a = fw_wb_data;
+      end
       default:  alu_operand_a = alu_operand_a_ip;
     endcase
   end
@@ -124,6 +129,11 @@ module EX_Stage (
       * Based on the Foward B Mux, how do we select the appropriate values? 
       *
       */
+      EX_RESULT_SELECT,
+      MEM_RESULT_SELECT,
+      WB_RESULT_SELECT: begin
+        alu_operand_b = fw_wb_data;
+      end
       default: alu_operand_b = alu_operand_b_ip;
     endcase
   end
