@@ -27,6 +27,7 @@ module WB_Stage (
 
   input logic [31:0] WB_immediate_ip,
   input logic [31:0] WB_pc_ip,
+  input logic [31:0] WB_pc_plus_4_ip,
 
   output logic WB_regfile_write_valid,
   output logic [31:0] WB_regfile_write_data
@@ -34,6 +35,9 @@ module WB_Stage (
 
   // Mux which data result to write back to memory if appropriate
   always_comb begin
+    WB_regfile_write_valid = 1'b0;
+    WB_regfile_write_data = 32'bz;
+
     case (WB_wb_mux_ip)
       READ_ALU_RESULT: begin
         WB_regfile_write_valid = WB_alu_result_valid_ip;
@@ -49,7 +53,7 @@ module WB_Stage (
       end
       READ_PC4: begin
         WB_regfile_write_valid = 1'b1;
-        WB_regfile_write_data = WB_pc_ip + 4;
+        WB_regfile_write_data = WB_pc_plus_4_ip;
       end
       default: begin
         WB_regfile_write_valid = 1'b0;

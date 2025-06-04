@@ -37,6 +37,7 @@ module Mem_Stage (
   input logic [4:0] lsu_write_reg_addr_pt_ip,
   input logic [31:0] lsu_pc_addr_pt_ip,
   input logic [31:0] lsu_uimmd_pt_ip,
+  input logic [31:0] lsu_pc_plus_4_pt_ip,
 
   output logic [31:0] wb_alu_result_pt_op,
   output logic wb_alu_result_valid_pt_op,
@@ -44,6 +45,7 @@ module Mem_Stage (
   output logic [4:0] lsu_write_reg_addr_pt_op,
   output logic [31:0] lsu_pc_addr_pt_op,
   output logic [31:0] lsu_uimmd_pt_op,
+  output logic [31:0] lsu_pc_plus_4_pt_op,
 
   // Output to Decode
   output logic data_req_op,                  // validity of data address request
@@ -59,27 +61,44 @@ module Mem_Stage (
 
   // Pipeline Buffer
   always @(posedge clock) begin
-    lsu_wb_mux_pt_op <= lsu_wb_mux_pt_ip;
-    wb_alu_result_pt_op <= wb_alu_result_pt_ip;
-    wb_alu_result_valid_pt_op <= wb_alu_result_valid_pt_ip;
-    lsu_write_reg_addr_pt_op <= lsu_write_reg_addr_pt_ip;
-    lsu_pc_addr_pt_op <= lsu_pc_addr_pt_ip;
-    lsu_uimmd_pt_op <= lsu_uimmd_pt_ip;
+    if (reset) begin
+      lsu_wb_mux_pt_op <= NO_WRITEBACK;
+      wb_alu_result_pt_op <= 0;
+      wb_alu_result_valid_pt_op <= 0;
+      lsu_write_reg_addr_pt_op <= 0;
+      lsu_pc_addr_pt_op <= 0;
+      lsu_uimmd_pt_op <= 0;
+      lsu_pc_plus_4_pt_op <= 0;
+    end else begin
+      lsu_wb_mux_pt_op <= lsu_wb_mux_pt_ip;
+      wb_alu_result_pt_op <= wb_alu_result_pt_ip;
+      wb_alu_result_valid_pt_op <= wb_alu_result_valid_pt_ip;
+      lsu_write_reg_addr_pt_op <= lsu_write_reg_addr_pt_ip;
+      lsu_pc_addr_pt_op <= lsu_pc_addr_pt_ip;
+      lsu_uimmd_pt_op <= lsu_uimmd_pt_ip;
+      lsu_pc_plus_4_pt_op <= lsu_pc_plus_4_pt_ip;
+    end
   end
 
   always @(posedge clock) begin
-    data_req_op = 1'b0;
+    if (reset) begin
+      data_req_op <= 1'b0;
+      load_mem_data_op <= 32'h0;
+    end else begin
+      data_req_op <= 1'b0;
 
-    if (valid_mem_operation == 1'b1) begin
-      data_req_op = 1'b1;
-      case (lsu_operator_ip)
-        LW: begin
-          case (mem_addr_ip[1:0])
-            2'b00: load_mem_data_op = mem_data_ip;
-            default load_mem_data_op = 32'hz;
-          endcase
-        end
-      endcase
+      if (valid_mem_operation == 1'b1) begin
+        data_req_op <= 1'b1;
+        case (lsu_operator_ip)
+          LW: begin
+            case (mem_addr_ip[1:0])
+              2'b00: load_mem_data_op <= mem_data_ip;
+              default: load_mem_data_op <= 32'hz;
+            endcase
+          end
+          default: load_mem_data_op <= 32'hz;
+        endcase
+      end
     end
   end
 

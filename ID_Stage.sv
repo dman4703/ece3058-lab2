@@ -43,6 +43,7 @@ module ID_Stage (
   output write_back_mux_selector wb_mux_op,
   output logic [31:0] id_pc_addr_pt_op,
   output logic [31:0] id_uimmd_pt_op,
+  output logic [31:0] id_pc_plus_4_pt_op,
 
   // Outputs to LSU
   output logic en_lsu_op,
@@ -97,6 +98,9 @@ module ID_Stage (
 
   // J-Type Immediate for JAL Instr.
   logic [31:0] J_IMM;
+  
+  // U-Type Immediate for LUI/AUIPC Instr.
+  logic [31:0] U_IMM;
 
   // Mux to select values for operand 2 or source reg 1. 
   operand_a_mux operand_a_select;
@@ -200,6 +204,36 @@ module ID_Stage (
         operand_b_select = J_IMMD;
       end
 
+      OPCODE_LUI: begin
+        // U-Type immediate encoding  
+        U_IMM = {valid_instr_to_decode[31:12], 12'b0};
+        
+        writeback_mux = READ_ALU_RESULT;
+        alu_operator = ALU_ADD;
+        operand_a_select = OPA_NOP;
+        operand_b_select = U_IMMD;
+      end
+
+      OPCODE_AUIPC: begin
+        // U-Type immediate encoding
+        U_IMM = {valid_instr_to_decode[31:12], 12'b0};
+        
+        writeback_mux = READ_ALU_RESULT;
+        alu_operator = ALU_ADD;
+        operand_a_select = PC;
+        operand_b_select = U_IMMD;
+      end
+
+      OPCODE_JALR: begin
+        pc_mux_inter = ALU_RESULT_JALR;
+        writeback_mux = READ_PC4;
+
+        // I-immediate for JALR (sign-extend 12-bit)
+        alu_operator = ALU_ADD;
+        operand_a_select = REG_A;     // rs1 value
+        operand_b_select = I_IMMD;    // 12-bit offset
+      end
+
     endcase
   end
 
@@ -228,6 +262,7 @@ module ID_Stage (
       REG: alu_operand_b_ex = regfile_b_out;
       I_IMMD: alu_operand_b_ex = $signed(valid_instr_to_decode[I_IMM_MSB:I_IMM_LSB]);
       J_IMMD: alu_operand_b_ex = J_IMM;
+      U_IMMD: alu_operand_b_ex = U_IMM;
       OPB_NOP: alu_operand_b_ex = 32'bz;
     endcase
   end
@@ -258,6 +293,7 @@ module ID_Stage (
       // Forwarded PC addr.
       id_pc_addr_pt_op <= 0;
       id_uimmd_pt_op <= 0;
+      id_pc_plus_4_pt_op <= 0;
 
     end else begin
       // Instructions to send to EX Stage
@@ -286,6 +322,15 @@ module ID_Stage (
 
       // Forwarded PC addr.
       id_pc_addr_pt_op <= pc;
+      // Pass U-type immediate for LUI/AUIPC or default for others
+      if (valid_instr_to_decode[6:0] == OPCODE_LUI 
+          || valid_instr_to_decode[6:0] 
+          == OPCODE_AUIPC) begin
+        id_uimmd_pt_op <= U_IMM;
+      end else begin
+        id_uimmd_pt_op <= 32'bz;
+      end
+      id_pc_plus_4_pt_op <= pc4; // Pass PC+4
     end
   end
 

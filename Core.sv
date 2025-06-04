@@ -32,6 +32,7 @@ module Core (
 
 	// Fetch Instruction Signals
 	logic [31:0] next_instr_addr; 											// PC + 4
+	assign next_instr_addr = if_instr_pc_addr + 4;  // Calculate PC+4
 	logic [31:0] instr_mem_data;												// instruction that memory loads out
 	logic instr_mem_valid;															// validity of instruction loaded out
 
@@ -95,6 +96,10 @@ module Core (
 	logic [31:0] id_uimmd_pt;
 	logic [31:0] ex_uimmd_pt;
 	logic [31:0] lsu_uimmd_pt;
+	// JAL PC+4
+	logic [31:0] id_pc_plus_4_pt;
+	logic [31:0] ex_pc_plus_4_pt;
+	logic [31:0] lsu_pc_plus_4_pt;
 
 	logic [31:0] writeback_data;
 	logic writeback_data_valid;
@@ -106,7 +111,7 @@ module Core (
 	// Stall signal propogated to relevant modules
 	logic stall;
 	logic flush; // flush signal to clear pipeline when necessary
-	assign flush = alu_next_pc_addr_valid && (pc_mux_select == ALU_RESULT);
+	assign flush = alu_next_pc_addr_valid && ((pc_mux_select == ALU_RESULT) || (pc_mux_select == ALU_RESULT_JALR));
 
 	IF_Stage InstructionFetch_Module (
 		// General Inputs
@@ -136,6 +141,7 @@ module Core (
 		.reset(reset),
 		.pc(if_instr_pc_addr),
 		.pc4(next_instr_addr),
+		.flush_ip(flush),
 
 		// Inputs from MEM
 		.instr_data_valid_ip(instr_mem_valid),
@@ -157,6 +163,7 @@ module Core (
 		.wb_mux_op(id_wb_mux_op),
 		.id_pc_addr_pt_op(id_instr_pc_addr_pt),
 		.id_uimmd_pt_op(id_uimmd_pt),
+    	.id_pc_plus_4_pt_op(id_pc_plus_4_pt), // JAL PC+4
 
 		// Outputs to LSU
 		.en_lsu_op(id_lsu_en_pt),
@@ -206,11 +213,11 @@ module Core (
 		.alu_operand_b_ip(alu_operand_b),
 
 		// Signals from Forw Controller
-		    .fa_mux_ip(FA),
-            .fb_mux_ip(FB),
-            .fw_wb_data(writeback_data),
-            .ex_result_fwd_ip(ex_alu_result_pt),
-            .mem_result_fwd_ip(load_mem_data),
+		.fa_mux_ip(FA),
+		.fb_mux_ip(FB),
+		.fw_wb_data(writeback_data),
+		.ex_result_fwd_ip(ex_alu_result_pt),
+		.mem_result_fwd_ip(writeback_data),
 
 		// Pass-Through Signals to Memory
 		.lsu_enable_pt_ip(id_lsu_en_pt),
@@ -220,6 +227,7 @@ module Core (
 		.ex_write_reg_addr_pt_ip(id_write_addr_reg_op),
 		.ex_pc_addr_pt_ip(id_instr_pc_addr_pt),
 		.ex_uimmd_pt_ip(id_uimmd_pt),
+    	.ex_pc_plus_4_pt_ip(id_pc_plus_4_pt), // JAL PC+4
 
 		// Pass-Through to Fetch based on Flush Controller and Writeback
 		.pc_mux_ip(pc_mux_select),
@@ -242,7 +250,8 @@ module Core (
 
 		.ex_wb_mux_op(ex_wb_mux_pt),
 		.ex_pc_addr_pt_op(ex_instr_pc_addr_pt),
-		.ex_uimmd_pt_op(ex_uimmd_pt)
+		.ex_uimmd_pt_op(ex_uimmd_pt),
+    	.ex_pc_plus_4_pt_op(ex_pc_plus_4_pt) // Added for JAL PC+4
 	);
 
 
@@ -270,6 +279,7 @@ module Core (
 		.lsu_write_reg_addr_pt_ip(ex_write_addr_reg_op),
 		.lsu_pc_addr_pt_ip(ex_instr_pc_addr_pt),
 		.lsu_uimmd_pt_ip(ex_uimmd_pt),
+    	.lsu_pc_plus_4_pt_ip(ex_pc_plus_4_pt), // JAL PC+4
 
 		.wb_alu_result_pt_op(lsu_alu_result_pt),
 		.wb_alu_result_valid_pt_op(lsu_alu_result_valid_pt),
@@ -277,6 +287,7 @@ module Core (
 		.lsu_write_reg_addr_pt_op(lsu_write_addr_reg_op),
 		.lsu_pc_addr_pt_op(lsu_instr_pc_addr_pt),
 		.lsu_uimmd_pt_op(lsu_uimmd_pt),
+    	.lsu_pc_plus_4_pt_op(lsu_pc_plus_4_pt), // JAL PC+4
 
 		// Output to Decode
 		.data_req_op(mem_data_req_valid),
@@ -323,6 +334,7 @@ module Core (
 
   	.WB_immediate_ip(lsu_uimmd_pt),
   	.WB_pc_ip(lsu_instr_pc_addr_pt),
+    .WB_pc_plus_4_ip(lsu_pc_plus_4_pt), // JAL PC+4
 
 		// Outputs to FWD and Decode Module
   	.WB_regfile_write_valid(writeback_data_valid),

@@ -35,7 +35,7 @@ module FWD_Control (
   logic EX_MEM_RegWrite_en;
   logic MEM_WB_RegWrite_en;
 
-  assign EX_MEM_RegWrite_en = (EX_MEM_wb_mux_ip == NO_WRITEBACK) ? 1'b0 : 1'b1;
+  assign EX_MEM_RegWrite_en = (EX_MEM_wb_mux_ip == NO_WRITEBACK || EX_MEM_wb_mux_ip == READ_MEM_RESULT) ? 1'b0 : 1'b1;
   assign MEM_WB_RegWrite_en = (MEM_WB_wb_mux_ip == NO_WRITEBACK) ? 1'b0 : 1'b1;
 
   always @(*) begin
@@ -57,7 +57,9 @@ module FWD_Control (
             && (EX_MEM_dest_ip == ID_dest_rs1_ip)) begin
           fa_mux_op = EX_RESULT_SELECT;
         end else if (MEM_WB_RegWrite_en && (MEM_WB_dest_ip != 5'd0) 
-                    && (MEM_WB_dest_ip == ID_dest_rs1_ip)) begin
+                    && (MEM_WB_dest_ip == ID_dest_rs1_ip) 
+                    // Avoid forwarding if EX/MEM stage will also forward to the same rs1
+                    && !(EX_MEM_RegWrite_en && (EX_MEM_dest_ip != 5'd0) && (EX_MEM_dest_ip == ID_dest_rs1_ip))) begin
           fa_mux_op = MEM_RESULT_SELECT;
         end
         // Check hazards on rs2
@@ -65,12 +67,13 @@ module FWD_Control (
             (EX_MEM_dest_ip == ID_dest_rs2_ip)) begin
           fb_mux_op = EX_RESULT_SELECT;
         end else if (MEM_WB_RegWrite_en && (MEM_WB_dest_ip != 5'd0) &&
-                     (MEM_WB_dest_ip == ID_dest_rs2_ip)) begin
+                     (MEM_WB_dest_ip == ID_dest_rs2_ip) 
+                     && !(EX_MEM_RegWrite_en && (EX_MEM_dest_ip != 5'd0) && (EX_MEM_dest_ip == ID_dest_rs2_ip))) begin
           fb_mux_op = MEM_RESULT_SELECT;
         end
       end
 
-      OPCODE_OPIMM: begin // Register Immediate 
+      OPCODE_OPIMM: begin
 
         /**
         * Task 2
@@ -82,22 +85,71 @@ module FWD_Control (
             && (EX_MEM_dest_ip == ID_dest_rs1_ip)) begin
           fa_mux_op = EX_RESULT_SELECT;
         end else if (MEM_WB_RegWrite_en && (MEM_WB_dest_ip != 5'd0) 
-                    && (MEM_WB_dest_ip == ID_dest_rs1_ip)) begin
+                    && (MEM_WB_dest_ip == ID_dest_rs1_ip)
+                    && !(EX_MEM_RegWrite_en && (EX_MEM_dest_ip != 5'd0) && (EX_MEM_dest_ip == ID_dest_rs1_ip))) begin
           fa_mux_op = MEM_RESULT_SELECT;
         end
       end
 
       OPCODE_LOAD: begin
-        // same as imm
         if (EX_MEM_RegWrite_en && (EX_MEM_dest_ip != 5'd0) 
             && (EX_MEM_dest_ip == ID_dest_rs1_ip)) begin
           fa_mux_op = EX_RESULT_SELECT;
         end else if (MEM_WB_RegWrite_en && (MEM_WB_dest_ip != 5'd0) 
-                    && (MEM_WB_dest_ip == ID_dest_rs1_ip)) begin
+                    && (MEM_WB_dest_ip == ID_dest_rs1_ip)
+                    && !(EX_MEM_RegWrite_en && (EX_MEM_dest_ip != 5'd0) && (EX_MEM_dest_ip == ID_dest_rs1_ip))) begin
           fa_mux_op = MEM_RESULT_SELECT;
         end
       end
 
+      OPCODE_JALR: begin
+        if (EX_MEM_RegWrite_en && (EX_MEM_dest_ip != 5'd0) 
+            && (EX_MEM_dest_ip == ID_dest_rs1_ip)) begin
+          fa_mux_op = EX_RESULT_SELECT;
+        end else if (MEM_WB_RegWrite_en && (MEM_WB_dest_ip != 5'd0) 
+                    && (MEM_WB_dest_ip == ID_dest_rs1_ip)
+                    && !(EX_MEM_RegWrite_en && (EX_MEM_dest_ip != 5'd0) && (EX_MEM_dest_ip == ID_dest_rs1_ip))) begin
+          fa_mux_op = MEM_RESULT_SELECT;
+        end
+      end
+
+      OPCODE_STORE: begin
+        // Forwarding for rs1 (base address register)
+        if (EX_MEM_RegWrite_en && (EX_MEM_dest_ip != 5'd0) 
+            && (EX_MEM_dest_ip == ID_dest_rs1_ip)) begin
+          fa_mux_op = EX_RESULT_SELECT;
+        end else if (MEM_WB_RegWrite_en && (MEM_WB_dest_ip != 5'd0) 
+                    && (MEM_WB_dest_ip == ID_dest_rs1_ip)
+                    && !(EX_MEM_RegWrite_en && (EX_MEM_dest_ip != 5'd0) && (EX_MEM_dest_ip == ID_dest_rs1_ip))) begin
+          fa_mux_op = MEM_RESULT_SELECT;
+        end
+      end
+
+      OPCODE_BRANCH: begin
+        // Forwarding for rs1
+        if (EX_MEM_RegWrite_en && (EX_MEM_dest_ip != 5'd0) 
+            && (EX_MEM_dest_ip == ID_dest_rs1_ip)) begin
+          fa_mux_op = EX_RESULT_SELECT;
+        end else if (MEM_WB_RegWrite_en && (MEM_WB_dest_ip != 5'd0) 
+                    && (MEM_WB_dest_ip == ID_dest_rs1_ip)
+                    && !(EX_MEM_RegWrite_en && (EX_MEM_dest_ip != 5'd0) && (EX_MEM_dest_ip == ID_dest_rs1_ip))) begin
+          fa_mux_op = MEM_RESULT_SELECT;
+        end
+        // Forwarding for rs2
+        if (EX_MEM_RegWrite_en && (EX_MEM_dest_ip != 5'd0) &&
+            (EX_MEM_dest_ip == ID_dest_rs2_ip)) begin
+          fb_mux_op = EX_RESULT_SELECT;
+        end else if (MEM_WB_RegWrite_en && (MEM_WB_dest_ip != 5'd0) &&
+                     (MEM_WB_dest_ip == ID_dest_rs2_ip)
+                     && !(EX_MEM_RegWrite_en && (EX_MEM_dest_ip != 5'd0) && (EX_MEM_dest_ip == ID_dest_rs2_ip))) begin
+          fb_mux_op = MEM_RESULT_SELECT;
+        end
+      end
+
+      default: begin
+        fa_mux_op = ORIGINAL_SELECT;
+        fb_mux_op = ORIGINAL_SELECT;
+      end
     endcase
 
   end
