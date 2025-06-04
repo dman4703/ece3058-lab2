@@ -35,6 +35,10 @@ module Stall_Control (
 
   always_comb begin
     stall_op = 1'b0;
+
+    // Only need to check for hazards if not in reset
+    //if (reset == 1'b0) begin
+
     case(ID_instr_opcode_ip) 
 
       OPCODE_OP: begin
@@ -49,6 +53,13 @@ module Stall_Control (
         * For Register Register instructions, what registers are relevant
         */
 
+        // make sure instr in EX is load, compare registers, stall for one cycle if necessary
+        if ((EX_instr_opcode_ip == OPCODE_LOAD) 
+            && ((EX_reg_dest_ip == ID_src1_addr_ip) 
+            || (EX_reg_dest_ip == ID_src2_addr_ip)) 
+            && (EX_reg_dest_ip != 5'd0)) begin
+          stall_op = 1'b1;
+        end
       end
 
       OPCODE_OPIMM: begin
@@ -63,6 +74,12 @@ module Stall_Control (
         * For Register Immedite instructions, what registers are relevant
         */
 
+        // only rs1 is relevant
+        if ((EX_instr_opcode_ip == OPCODE_LOAD) 
+            && (EX_reg_dest_ip == ID_src1_addr_ip) 
+            && (EX_reg_dest_ip != 5'd0)) begin
+          stall_op = 1'b1;
+        end
       end
 
       default: begin
