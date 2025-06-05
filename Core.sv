@@ -103,6 +103,7 @@ module Core (
 
 	logic [31:0] writeback_data;
 	logic writeback_data_valid;
+	logic [31:0] ex_forward_data;
 
 	// Foward Mux Signals
 	forward_mux_code FA;
@@ -112,7 +113,7 @@ module Core (
 	logic stall;
 	logic flush; // flush signal to clear pipeline when necessary
 	assign flush = alu_next_pc_addr_valid && ((pc_mux_select == ALU_RESULT) || (pc_mux_select == ALU_RESULT_JALR));
-
+	assign ex_forward_data = (ex_wb_mux_pt == READ_PC4) ? ex_pc_plus_4_pt : ex_alu_result_pt;
 	IF_Stage InstructionFetch_Module (
 		// General Inputs
 		.clock(clock),
@@ -216,7 +217,7 @@ module Core (
 		.fa_mux_ip(FA),
 		.fb_mux_ip(FB),
 		.fw_wb_data(writeback_data),
-		.ex_result_fwd_ip(ex_alu_result_pt),
+		.ex_result_fwd_ip(ex_forward_data),
 		.mem_result_fwd_ip(writeback_data),
 
 		// Pass-Through Signals to Memory
