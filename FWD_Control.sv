@@ -35,7 +35,7 @@ module FWD_Control (
   logic EX_MEM_RegWrite_en;
   logic MEM_WB_RegWrite_en;
 
-  assign EX_MEM_RegWrite_en = (EX_MEM_wb_mux_ip == NO_WRITEBACK || EX_MEM_wb_mux_ip == READ_MEM_RESULT) ? 1'b0 : 1'b1;
+  assign EX_MEM_RegWrite_en = (EX_MEM_wb_mux_ip == NO_WRITEBACK) ? 1'b0 : 1'b1;
   assign MEM_WB_RegWrite_en = (MEM_WB_wb_mux_ip == NO_WRITEBACK) ? 1'b0 : 1'b1;
 
   always @(*) begin
@@ -122,6 +122,16 @@ module FWD_Control (
                     && (MEM_WB_dest_ip == ID_dest_rs1_ip)
                     && !(EX_MEM_RegWrite_en && (EX_MEM_dest_ip != 5'd0) && (EX_MEM_dest_ip == ID_dest_rs1_ip))) begin
           fa_mux_op = MEM_RESULT_SELECT;
+        end
+        
+        // Forwarding for rs2 (data to be stored)
+        if (EX_MEM_RegWrite_en && (EX_MEM_dest_ip != 5'd0) &&
+            (EX_MEM_dest_ip == ID_dest_rs2_ip)) begin
+          fb_mux_op = EX_RESULT_SELECT;
+        end else if (MEM_WB_RegWrite_en && (MEM_WB_dest_ip != 5'd0) 
+                    && (MEM_WB_dest_ip == ID_dest_rs2_ip) 
+                    && !(EX_MEM_RegWrite_en && (EX_MEM_dest_ip != 5'd0) && (EX_MEM_dest_ip == ID_dest_rs2_ip))) begin
+          fb_mux_op = MEM_RESULT_SELECT;
         end
       end
 

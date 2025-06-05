@@ -104,6 +104,7 @@ module Core (
 	logic [31:0] writeback_data;
 	logic writeback_data_valid;
 	logic [31:0] ex_forward_data;
+	logic [31:0] mem_forward_data;
 
 	// Foward Mux Signals
 	forward_mux_code FA;
@@ -113,7 +114,28 @@ module Core (
 	logic stall;
 	logic flush; // flush signal to clear pipeline when necessary
 	assign flush = alu_next_pc_addr_valid && ((pc_mux_select == ALU_RESULT) || (pc_mux_select == ALU_RESULT_JALR));
-	assign ex_forward_data = (ex_wb_mux_pt == READ_PC4) ? ex_pc_plus_4_pt : ex_alu_result_pt;
+	
+	// all possible writeback sources
+	always_comb begin
+		case (ex_wb_mux_pt)
+			READ_PC4: ex_forward_data = ex_pc_plus_4_pt;
+			READ_ALU_RESULT: ex_forward_data = ex_alu_result_pt;
+			READ_REGFILE: ex_forward_data = ex_uimmd_pt;  // For LUI/AUIPC
+			default: ex_forward_data = ex_alu_result_pt;
+		endcase
+	end
+	
+	// MEM forward data from M/W pipeline register
+	always_comb begin
+		case (lsu_wb_mux_pt)
+			READ_PC4: mem_forward_data = lsu_pc_plus_4_pt;
+			READ_ALU_RESULT: mem_forward_data = lsu_alu_result_pt;
+			READ_MEM_RESULT: mem_forward_data = load_mem_data;
+			READ_REGFILE: mem_forward_data = lsu_uimmd_pt;  // For LUI/AUIPC
+			default: mem_forward_data = lsu_alu_result_pt;
+		endcase
+	end
+
 	IF_Stage InstructionFetch_Module (
 		// General Inputs
 		.clock(clock),
@@ -218,7 +240,7 @@ module Core (
 		.fb_mux_ip(FB),
 		.fw_wb_data(writeback_data),
 		.ex_result_fwd_ip(ex_forward_data),
-		.mem_result_fwd_ip(writeback_data),
+		.mem_result_fwd_ip(mem_forward_data),
 
 		// Pass-Through Signals to Memory
 		.lsu_enable_pt_ip(id_lsu_en_pt),

@@ -101,6 +101,9 @@ module ID_Stage (
   
   // U-Type Immediate for LUI/AUIPC Instr.
   logic [31:0] U_IMM;
+  
+  // S-Type Immediate for Store Instr.
+  logic [31:0] S_IMM;
 
   // Mux to select values for operand 2 or source reg 1. 
   operand_a_mux operand_a_select;
@@ -232,6 +235,28 @@ module ID_Stage (
         alu_operator = ALU_ADD;
         operand_a_select = REG_A;     // rs1 value
         operand_b_select = I_IMMD;    // 12-bit offset
+      end
+
+      OPCODE_STORE: begin
+        en_lsu = 1'b1;
+        
+        writeback_mux = NO_WRITEBACK;
+        
+        // Calculate address: rs1 + S-immediate
+        operand_a_select = REG_A;
+        operand_b_select = I_IMMD;  // S-immediate uses same bits as I-immediate for now
+        alu_operator = ALU_ADD;
+        
+        // Store data comes from rs2
+        mem_wdata = regfile_b_out;
+        
+        // Determine store type based on funct3
+        case(valid_instr_to_decode[14:12])
+          3'b000: lsu_operator = SB; // Store Byte
+          3'b001: lsu_operator = SH; // Store Halfword
+          3'b010: lsu_operator = SW; // Store Word
+          default: lsu_operator = SW;
+        endcase
       end
 
     endcase

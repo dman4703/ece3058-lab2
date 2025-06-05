@@ -113,6 +113,21 @@ module Stall_Control (
         end
       end
 
+      OPCODE_JALR: begin
+        // JALR reads rs1 for the base address; check hazards same way as immediate instructions
+        if ((EX_instr_opcode_ip == OPCODE_LOAD)
+            && (EX_reg_dest_ip == ID_src1_addr_ip)
+            && (EX_reg_dest_ip != 5'd0)) begin
+          stall_op = 1'b1;
+        end
+
+        if ((WB_write_reg_en_ip == 1'b1)
+            && (WB_reg_dest_ip != 5'd0)
+            && (WB_reg_dest_ip == ID_src1_addr_ip)) begin
+          stall_op = 1'b1;
+        end
+      end
+
       default: begin
         stall_op = 1'b0;
       end

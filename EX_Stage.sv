@@ -83,6 +83,10 @@ module EX_Stage (
         next_PC_addr_valid_op = alu_valid;
         next_PC_addr_op = alu_result;
       end
+      ALU_RESULT_JALR: begin
+        next_PC_addr_valid_op = alu_valid;
+        next_PC_addr_op = alu_result;
+      end
       default begin
         next_PC_addr_valid_op = 0;
         next_PC_addr_op = 0;
