@@ -100,7 +100,7 @@ module IF_Stage (
 		// General Inputs
 		.clock(clock),
 		.reset(reset),
-		.instr_gnt_ip(mem_gnt_req),
+		.instr_gnt_ip(instr_gnt_ip),
 
 		.Next_PC_ip(Next_PC),
 

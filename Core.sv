@@ -105,7 +105,6 @@ module Core (
 
 	// Stall signal propogated to relevant modules
 	logic stall;
-	logic flush; // flush signal to clear pipeline when necessary
 	logic flush_signal;
 
 	IF_Stage InstructionFetch_Module (
