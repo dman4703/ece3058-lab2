@@ -106,7 +106,7 @@ module Core (
 	// Stall signal propogated to relevant modules
 	logic stall;
 	logic flush; // flush signal to clear pipeline when necessary
-	assign flush = alu_next_pc_addr_valid && (pc_mux_select == ALU_RESULT);
+	logic flush_signal;
 
 	IF_Stage InstructionFetch_Module (
 		// General Inputs
@@ -118,7 +118,7 @@ module Core (
 		// Inputs from Decode
 		.pc_mux_ip(pc_mux_select),
 		.stall_ip(stall),
-		.flush_ip(flush),
+		.flush_ip(flush_signal),
 
 		// Inputs from EX of possible new PC 
 		.alu_result_ip(alu_next_pc_addr),
@@ -136,6 +136,7 @@ module Core (
 		.reset(reset),
 		.pc(if_instr_pc_addr),
 		.pc4(next_instr_addr),
+		.flush_ip(flush_signal),
 
 		// Inputs from MEM
 		.instr_data_valid_ip(instr_mem_valid),
@@ -237,6 +238,7 @@ module Core (
 		// Outputs to forward to Fetch for Flush Control
 		.next_PC_addr_op(alu_next_pc_addr),
 		.next_PC_addr_valid_op(alu_next_pc_addr_valid),
+		.flush_en_op(flush_signal),
 
 		.ex_wb_mux_op(ex_wb_mux_pt),
 		.ex_pc_addr_pt_op(ex_instr_pc_addr_pt),

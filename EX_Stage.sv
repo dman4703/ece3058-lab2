@@ -56,6 +56,7 @@ module EX_Stage (
   // Outputs to forward to Fetch for Flush Control
   output logic [31:0] next_PC_addr_op,
   output logic next_PC_addr_valid_op,
+  output logic flush_en_op,
 
   // Pass Through the WriteBack Mux Signal
   output write_back_mux_selector ex_wb_mux_op,
@@ -73,15 +74,18 @@ module EX_Stage (
   always @(*) begin
     next_PC_addr_valid_op = 0;
     next_PC_addr_op = 0;
+    flush_en_op = 0;
 
     case (pc_mux_ip) 
       ALU_RESULT: begin
         next_PC_addr_valid_op = alu_valid;
         next_PC_addr_op = alu_result;
+        flush_en_op = alu_valid;
       end
       default begin
         next_PC_addr_valid_op = 0;
         next_PC_addr_op = 0;
+        flush_en_op = 0;
       end
     endcase
   end
@@ -112,7 +116,9 @@ module EX_Stage (
       * Based on the Foward A Mux, how do we select the appropriate values? 
       *
       */
-      EX_RESULT_SELECT,
+      EX_RESULT_SELECT: begin
+        alu_operand_a = alu_result_op;
+      end
       MEM_RESULT_SELECT,
       WB_RESULT_SELECT: begin
         alu_operand_a = fw_wb_data;
@@ -129,7 +135,9 @@ module EX_Stage (
       * Based on the Foward B Mux, how do we select the appropriate values? 
       *
       */
-      EX_RESULT_SELECT,
+      EX_RESULT_SELECT: begin
+        alu_operand_b = alu_result_op;
+      end
       MEM_RESULT_SELECT,
       WB_RESULT_SELECT: begin
         alu_operand_b = fw_wb_data;
