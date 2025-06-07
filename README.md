@@ -1,7 +1,3 @@
-## **Pipelined Processor**
-
-Go ahead and [download](https://github.gatech.edu/pages/ECE3058/website/labs/pipelined/assignment.zip) the assignment.
-
 ## **Required Tools for this lab[¶](https://github.gatech.edu/pages/ECE3058/website/labs/pipelined/pipelined/#required-tools-for-this-lab)**
 
 1. If you've Linux or Windows (WSL), then it is recommended to use [iverilog](https://github.gatech.edu/pages/ECE3058/website/resources/iverilog/iverilog) with [GTKwave or Scansion](https://github.gatech.edu/pages/ECE3058/website/resources/VCD/vcd/)
@@ -12,81 +8,52 @@ Go ahead and [download](https://github.gatech.edu/pages/ECE3058/website/labs/pip
 
 After you've built the computer for your friend from last lab, he keeps complaining that its too slow. You decide to help him again. In order to speedup the clock rate, you'll need to modify your datapath to the pipeline design you learned in class. Luckily for you, someone else has already provided an outline for the datapath but with several bugs and essential missing components required for pipelining to work efficently. You're task is to add in these missing pieces.
 
-The mermaid figure below is a high-level view of the current pipeline implementation from the given **system verilog** code. It should be very similiar to the one presented in class. Please note that many wires/connections are missing.
+The mermaid figure below is a high-level view of the current pipeline implementation from the given **system verilog** code. It should be very similiar to the one presented in class.
 
 ```
-graph TD
-    %% Instruction Fetch Module
-    subgraph IF["InstructionFetch_Module"]
+flowchart TD
+ subgraph IF["InstructionFetch_Module"]
         PC["PC"]
-        IM["Instruction<br/>Memory"]
+        IM["Instruction Memory"]
         FM["Fetch Module"]
-        PC --> IM
-        FM --> PC
-    end
-    
-    %% Instruction Decode Module
-    subgraph ID["InstructionDecode_Module"]
+  end
+ subgraph ID["InstructionDecode_Module"]
         RF["32x32 Register File"]
         DM["Decode Module"]
         SC["Stall Controller"]
-        RF --> DM
-        DM --> RF
-    end
-    
-    %% Instruction Execute Module
-    subgraph IE["InstructionExecute_Module"]
+  end
+ subgraph IE["InstructionExecute_Module"]
         ALU["ALU Unit"]
         COMP["Comparator"]
         FCM["Foward Controller Module"]
         OPA["Operand Mux A"]
         OPB["Operand Mux B"]
-        FCM --> OPA
-        FCM --> OPB
-        OPA --> ALU
-        OPB --> COMP
-    end
-    
-    %% Memory Module
-    subgraph MEM["Memory_Module"]
+  end
+ subgraph MEM["Memory_Module"]
         DM_MEM["Data Memory"]
         LSU["LSU Unit"]
-        DM_MEM --> LSU
-        LSU --> DM_MEM
-    end
-    
-    %% WriteBack Module
-    subgraph WB["WriteBack_Module"]
+  end
+ subgraph WB["WriteBack_Module"]
         WBM["Writeback Module"]
-    end
-    
-    %% inter‑stage pipeline registers
-    FD["IF/ID Latch"]
-    DE["ID/EX Latch"]
-    EM["EX/MEM Latch"]
-    MW["MEM/WB Latch"]
-    
-    %% connections
+  end
+    PC --> IM & FD["IF/ID Latch"]
+    FM --> PC
+    RF --> DM
+    DM --> RF & DE["ID/EX Latch"] & FM & PC
+    FCM --> OPA & OPB
+    OPA --> ALU
+    OPB --> COMP
+    DM_MEM --> LSU & MW["MEM/WB Latch"]
+    LSU --> DM_MEM & MW
     IM --> FD
-    PC --> FD
-
-    FD --> DM
-
-    DE --> OPA
-    DE --> OPB
-    ALU --> EM
-    COMP --> EM
-
-    EM --> OPA
-    EM --> OPB
-    EM --> LSU
-
-    LSU --> MW
-
-    MW --> WBM
-
-    WBM --> OPA
-    WBM --> OPB
+    FD --> DM & SC
+    SC --> DE & PC & FD
+    DE --> OPA & OPB & ALU & COMP & LSU
+    ALU --> EM["EX/MEM Latch"] & FM & PC
+    COMP --> EM & FM & PC
+    EM --> LSU & DM_MEM & OPA & OPB & FCM
+    MW --> WBM & FCM
+    WBM --> RF & OPA & OPB & FCM
 ```
 
 ### Processor Specifications[¶](https://github.gatech.edu/pages/ECE3058/website/labs/pipelined/pipelined/#processor-specifications)
@@ -95,7 +62,7 @@ The pipeline for our application will implement 6 instructions of the RV32I ISA.
 
 1. The microarchiecture will need to implement the following instructions of the RV32I: `ADD`, `ADDI`, `SUB` `LW`, `SLT`, and `JAL` 
 
-2. There are two forwarding lines to forward the ALU result from the MEM and WB back to the EX stage based on `PipelineHighLevelView.pptx`.  
+2. There are two forwarding lines to forward the ALU result from the MEM and WB back to the EX stage based on the diagram shown above.  
 3. Jumps are resolved in the *Execute Stage*. Even though the jump instruction is known in the decode stage, the jump address calculations rely on the ALU to compute.  
 4. Writebacks writes and RegisterFile reads cannot occur in the same cycle. In other words, if we writeback data to $3, then only on the next *CLK cycle* can we read the updated value of the register file. Note that you cannot just forward the results of WB to EX because the dependant instruction is in the Decode stage and not the Execute. The forwarding lines are only directed to the EX stage. For example, with the two forwarding lines:
 
@@ -113,101 +80,105 @@ The pipeline for our application will implement 6 instructions of the RV32I ISA.
 
 First click [here](https://github.gatech.edu/pages/ECE3058/website/labs/pipelined/assignment.zip) to download the lab. Change into the rtl directory and run `make` to generate the `Core_Simulation.vcd`, and then open it. Make sure you're able to view a waveform and that everything works properly so far without any edits. You should not get any errors during compilation. The current processor should implement all the 6 instructions given in the specifications correctly if there are no data dependencies. In fact if you submit it right now to Gradescope, you will pass the functionality test and get a free 5 points. In the tasks below you will modify the processor so that it supports data dependencies.
 
-In this lab, you will perform the following tasks:
-
-### Design Task[¶](https://github.gatech.edu/pages/ECE3058/website/labs/pipelined/pipelined/#design-task)
-
-Similar to the previous lab, create a diagram to identify the connections between modules. Make sure to include all of the modules in `Core.sv` and indicate the connections between the modules. Highlight the location of the Stall Controller and the Forward Controller. The mermaid diagram shown below can help you get started with conceptualizing the design.
-
-```
-graph TD
-    %% Instruction Fetch Module
-    subgraph IF["InstructionFetch_Module"]
-        PC["PC"]
-        IM["Instruction<br/>Memory"]
-        FM["Fetch Module"]
-        PC --> IM
-        FM --> PC
-    end
-    
-    %% Instruction Decode Module
-    subgraph ID["InstructionDecode_Module"]
-        RF["32x32 Register File"]
-        DM["Decode Module"]
-        SC["Stall Controller"]
-        RF --> DM
-        DM --> RF
-    end
-    
-    %% Instruction Execute Module
-    subgraph IE["InstructionExecute_Module"]
-        ALU["ALU Unit"]
-        COMP["Comparator"]
-        FCM["Foward Controller Module"]
-        OPA["Operand Mux A"]
-        OPB["Operand Mux B"]
-        FCM --> OPA
-        FCM --> OPB
-        OPA --> ALU
-        OPB --> COMP
-    end
-    
-    %% Memory Module
-    subgraph MEM["Memory_Module"]
-        DM_MEM["Data Memory"]
-        LSU["LSU Unit"]
-        DM_MEM --> LSU
-        LSU --> DM_MEM
-    end
-    
-    %% WriteBack Module
-    subgraph WB["WriteBack_Module"]
-        WBM["Writeback Module"]
-    end
-    
-    %% inter‑stage pipeline registers
-    FD["IF/ID Latch"]
-    DE["ID/EX Latch"]
-    EM["EX/MEM Latch"]
-    MW["MEM/WB Latch"]
-    
-    %% connections
-    IM --> FD
-    PC --> FD
-
-    FD --> DM
-
-    DE --> OPA
-    DE --> OPB
-    ALU --> EM
-    COMP --> EM
-
-    EM --> OPA
-    EM --> OPB
-    EM --> LSU
-
-    LSU --> MW
-
-    MW --> WBM
-
-    WBM --> OPA
-    WBM --> OPB
-```
-
-Consider the following instructions on a pipelined processor. Explain why the add will have an issue and what possible solutions could be used to solve the issue.
-
-|  | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 |
-| :---- | :---- | :---- | :---- | :---- | :---- | :---- | :---- | :---- | :---- | :---- | :---- | :---- | :---- | :---- |
-| lw $2, 0 | F | D | E | M | WB |  |  |  |  |  |  |  |  |  |
-| lw $3, 0x4 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| add $1, $2, $3 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+In this lab, you will perform the following task:
 
 ### Code Task[¶](https://github.gatech.edu/pages/ECE3058/website/labs/pipelined/pipelined/#code-task)
 
 1. Add support for the load-to-use stall. For example, if a `lw` instruction produces data used by an immediately following instruction, one stall cycle should be included between the `lw` and the immediately following instruction.  
 2. Currently the processor does not stall when the instruction following the load depends on it. The logic that needs to be repaired to add load-to-use stall is in the file `Stall_Control.sv`. Add support for writeback stalls. This is detailed in the 2nd specification above. For example, if an add instruction writes data back to the register file addr. in the same CLK cycle that another instr. is in the *Decode* and reading the same register file addr. then you need to stall for one cycle to allow the data to be written back to the register file so that on the next CLK cycle, the correct value can be read.  
-3. Implement data forwarding to the EX stage. There is a blank module called `FWD_CONT.sv` already created for you and instantiated within `Core.sv`. Feel free to modify the input/output ports if required in your implementation. Just how you checked for hazards in the `Stall_Control.sv` file, you will check for hazards and forward the correct value from EX/MEM or MEM/WB stage to the execute unit.  
-4. Implement flushing in the pipeline. Note specification 4 above. Thus, the fetch stage will keep fetching instructions through `PC + 4` until the jump condition is resolved. Flushing out will mean clearing out the relevant (before branch resolution) registers.
+3. Implement data forwarding to the EX stage. There is a blank module called `FWD_CONT.sv` already created for you and instantiated within `Core.sv`. Feel free to modify the input/output ports if required in your implementation. Just how you checked for hazards in the `Stall_Control.sv` file, you will check for hazards and forward the correct value from EX/MEM or MEM/WB stage to the execute unit. Tips:
+    
+    - Focus on `OPCODE_OP` and `OPCODE_OPIMM` in `FWD_Control.sv`.
+        - In `OPCODE_OP`, you need to consider two main cases:
+            1. you need to assign something to the `fa_mux` (corresponds to rs1), which gets results from either the execution stage or writeback stage.
+            2. you need to do something with fb_mux (corresponds to rs2), which gets results from the execution stage or writeback stage.
+        - `OPCODE_OPIMM` section will check practically the same conditions, but only one case:
+            1. you need to assign something to the `fa_mux` (corresponds to rs1), which gets results from either the execution stage or writeback stage.
+    
+    - Here are the fowarding conditions for reference:
+        ```
+        // EX Hazard
+        if (EX/MEM.RegWrite and (EX/MEM.RegisterRd != 0) and (EX/MEM.RegisterRd = ID/EX.Register.Rs1)) { 
+            FwdA --> EX/MEM 
+        }
+        if (EX/MEM.RegWrite and (EX/MEM.RegisterRd != 0) and (EX/MEM.RegisterRd = ID/EX.Register.Rs2)) { 
+            FwdB --> EX/MEM 
+        }
+
+        // MEM hazard
+        if (MEM/WB.RegWrite and (MEM/WB.RegisterRD != 0) and (MEM/WB.RegisterRD = ID/EX.RegisterRs1)) {
+            Fwd A --> MEM/WB
+        }
+        if (MEM/WB.RegWrite and (MEM/WB.RegisterRD != 0) and (MEM/WB.RegisterRD = ID/EX.RegisterRs2)) {
+            Fwd B --> MEM/WB
+        }
+        ```
+
+    - In `EX_Stage.sv`, `fa_mux_ip` and `fb_mux_ip` could be assigned to:
+        ```
+        typedef enum logic [2:0] {
+        ORIGINAL_SELECT = 3'b000, 
+        EX_RESULT_SELECT = 3'b001,
+        MEM_RESULT_SELECT = 3'b010, 
+        WB_RESULT_SELECT = 3'b011,
+        MEM_DATA_EX_SELECT = 3'b100, forwarded 
+        MEM_DATA_WB_SELECT = 3'b101
+        } forward_mux_code;
+        ```
+        - You will want to consider the cases when `fa_mux_ip` is `EX_RESULT_SELECT`, `MEM_RESULT_SELECT`, and `WB_RESULT_SELECT`. In each of these scenarios, we want to assign something to `alu_operand_a`; something like `EX_RESULT_SELECT: alu_operand_a = ?`. Hint: what you can assign to operand a would be related to `input logic [31:0] fw_wb_data` (data from the forward controller) OR it would be related to `output logic [31:0] alu_result_op` (data that is being routed back to the execution stage).
+        - The same advice applies to `fb_mux_ip`, except now we are assigning `alu_operand_b`
+
+4. Implement flushing in the pipeline. Note specification 4 above. Thus, the fetch stage will keep fetching instructions through `PC + 4` until the jump condition is resolved. Flushing out will mean clearing out the relevant (before branch resolution) registers. Tips:
+    - `EX_Stage.sv` outputs the flush signal. That flush signal will be used as an input in `IF_Stage.sv` and `ID_stage.sv`.
+    - Thus, in `Core.sv`:
+        - Define `logic flush_signal`.
+        - In `IF_Stage InstructionFetch_Module`, declare a flush input signal; it takes the flush en signal
+        - In `ID_Stage InstructionDecode_Module`, declare a flush input signal; it takes the flush en signal
+        - In `EX_Stage InstructionExecute_Module`, declare a flush output signal; it takes the flush en signal
+    - In `IF_Stage.sv`:
+        - Declare the flush_ip signal that was added to `Core.sv`
+        - Flush in this context is very much like reset, so you may be able to reference/make use of the reset code for when the flush signal is on:
+            ```
+            // IF/ID Pipeline Buffer
+            always_ff @(posedge clock) begin
+		        if ((reset == 1'b1)) begin
+			        instr_valid_op <= 0;
+			        instr_data_op <= 0;
+			        instr_pc_addr_op <= 0;
+		        end
+                ...
+            ```
+    - In `ID_Stage.sv`:
+        - Declare the flush_ip signal that was added to `Core.sv`
+        - Again, flush is very much like reset, so you can make use of the reset code:
+            ```
+            // ID_EX Pipeline Buffer
+            always_ff @(posedge clock) begin
+                if ((stall_op == 1'b1) | (reset == 1'b1)) begin // check flush signal
+                    // Instructions to send to EX Stage
+                    alu_en_op <= 0;
+                    alu_operator_op <= ALU_NOP;
+                    alu_operand_a_ex_op <= 0;
+                    alu_operand_b_ex_op <= 0;
+                ...
+            ```        
+    - In `EX_Stage.sv`:
+        - Declare the flush output signal.
+        - Looking at the `pc_mux_ip`, what should the flush en signal be in default? What should your flush en signal be in ALU_RESULT case?
+            ```
+            case (pc_mux_ip) 
+                ALU_RESULT: begin
+                    next_PC_addr_valid_op = alu_valid;
+                    next_PC_addr_op = alu_result;
+                    // What should the flush en signal be in ALU_RESULT case?
+                end
+                default begin
+                    next_PC_addr_valid_op = 0;
+                    next_PC_addr_op = 0;
+                    // what should the flush en signal be in default?
+                end
+            endcase
+            ```
 
 **Functionally all the processor should still be generating correct logic after all the changes to implementing stalling, forwarding, and flushing.**
 
@@ -217,139 +188,102 @@ Build test cases by combining intructions to test out stalling, forwarding, and 
 
 To help you debug as well as better understand the tasks of lab 2, we've provided the waveforms for some of the tests that are running in Gradescope. Their names below correspond to the test names you see in Gradescope. You are NOT REQUIRED to match these waveforms. They are only here to help you as a guide to debug the test cases and show what the proper execution of the test cases should be in order to pass. The waveforms may even contain irrelevant wires and signals, but ultimately the most important considerations for our cases are the register and memory values as these are what ensure functional correctness and the proper implementation of the 5 stage in-order pipeline. Your goal shouldn't be to try to match them bit by bit but rather make sure you understand what instructions are suppose to output. You should use the emulator form Lab0 to make sure you understand what's going on first and see what is outputted to memory and RF at every cycle and try to understand how you can obtain that rather than just diving directly in to match the waveforms because chances are you're not going to match every signal.
 
-* Functional. [here](https://github.gatech.edu/pages/ECE3058/website/labs/pipelined/Functional.vcd)
-```
-0x00000000  
-0xfec10493    
-0x00c58533   
-0x00002403   
-0x40618a33   
-0x01392ab3    
-0x014005ef 
-```
-   
-* Task 1 Simple. [here](https://github.gatech.edu/pages/ECE3058/website/labs/pipelined/Task1_Simple.vcd)
-```
-0x00000000   
-0x00002483  
-0x002480b3  
-0x00402403  
-0x006401b3
-``` 
-* Task 2 Simple. [here](https://github.gatech.edu/pages/ECE3058/website/labs/pipelined/Task2_Simple.vcd)
-```
-0x003100b3   
-0x00418133   
-0x005201b3  
-0x00208233
-```
-* Task 2 Complex. [here](https://github.gatech.edu/pages/ECE3058/website/labs/pipelined/Task2_Complex.vcd)
-```
-0x00000000  
-0x00000000  
-0x00000000  
-0x00002483  
-0x00402403  
-0x00002383  
-0x00002083  
-0x00000000  
-0x00000000  
-0x00402083  
-0x00710133  
-0x00402183  
-0x01418233
-``` 
 * Task 3 Simple. [here](https://github.gatech.edu/pages/ECE3058/website/labs/pipelined/Task3_Simple.vcd)
 ```
-0x00000000  
-0x00000000  
-0x00000000  
-0x003100b3  
-0x001100b3  
-0x002080b3  
-0x001480b3  
-0x00148133  
-0x00000000  
-0x00248133  
-0x406480b3  
-0x009300b3  
-0x40178133  
-0x00000000
+nop # (0x00000000)
+nop # (0x00000000)
+nop # (0x00000000)
+add x1, x2, x3
+add x1, x2, x1
+add x1, x1, x2
+add x1, x9, x1
+add x2, x9, x1
+nop # (0x00000000)
+add x2, x9, x2
+sub x1, x9, x6
+add x1, x6, x9
+sub x2, x15, x1
+nop # (0x00000000)
 ```
+
 * Task 3 General. [here](https://github.gatech.edu/pages/ECE3058/website/labs/pipelined/Task3_General.vcd)
 ```
-0x00000000  
-0xffb00413  
-0x00500433  
-0x408304b3  
-0x00002483  
-0x008484b3  
-0x408484b3  
-0x00848633  
-0x009425b3  
-0x40b00133
-```  
+nop # (0x00000000)
+addi x8, x0, -5
+add x8, x0, x5
+sub x9, x6, x8
+lw x9, 0(x0)
+add x9, x9, x8
+sub x9, x9, x8
+add x12, x9, x8
+slt x11, x8, x9
+sub x2, x0, x11
+```
+
 * Task 3 Complex [here](https://github.gatech.edu/pages/ECE3058/website/labs/pipelined/Task3_Long.vcd)
 ```
-0x00000000      
-0x00000000      
-0x00000000      
-0x00210133      
-0x00210133      
-0x00210133      
-0x00210133      
-0x00210133      
-0x00210133      
-0x00210133      
-0x00210133      
-0x00210133      
-0x00210133      
-0x01080833      
-0x00000000      
-0x01080833      
-0x00000000      
-0x01080833      
-0x00000000      
-0x00000000      
-0x01080833      
-0x41010733      
-0x41070633      
-0x00000000      
-0x41070633      
-0x410604b3      
-0x002481b3      
-0x00002483      
-0x00348233      
-0x40348233      
-0xfec10113      
-0x00402083    
+nop # (0x00000000)
+nop # (0x00000000)
+nop # (0x00000000)
+add x2, x2, x2
+add x2, x2, x2
+add x2, x2, x2
+add x2, x2, x2
+add x2, x2, x2
+add x2, x2, x2
+add x2, x2, x2
+add x2, x2, x2
+add x2, x2, x2
+add x2, x2, x2
+add x16, x16, x16
+nop # (0x00000000)
+add x16, x16, x16
+nop # (0x00000000)
+add x16, x16, x16
+nop # (0x00000000)
+nop # (0x00000000)
+add x16, x16, x16
+sub x14, x2, x16
+sub x12, x14, x16
+nop # (0x00000000)
+sub x12, x14, x16
+sub x9, x12, x16
+add x3, x9, x2
+lw x9, 0(x0)
+add x4, x9, x3
+sub x4, x9, x3
+addi x2, x2, -20
+lw x1, 4(x0)    
 ```
+
 * Task 4 Jal. [here](https://github.gatech.edu/pages/ECE3058/website/labs/pipelined/Task4_Jal.vcd)
 ```
-0x00000000  
-0x002282b3  
-0x40760233  
-0xff9ff56f  
-0x405202b3  
-0x00c20313
+nop # (0x00000000)
+add x5, x5, x2
+sub x4, x12, x7
+jal x10, -8
+sub x5, x4, x5
+addi x6, x4, 12
 ```
+
 * Task 4 Jal Complex [here](https://github.gatech.edu/pages/ECE3058/website/labs/pipelined/Task4_Jal_Complex.vcd)
 ```
-0x00000000   
-0x00002783   
-0x00178793   
-0x0080056f   
-0x00a182b3   
-0x00a782b3   
-0x004005ef   
-0x0040066f   
-0x00c582b3   
-0x003282b3   
-0x00c006ef   
-0x003a8a33   
-0xfd9ff76f   
-0x00402683 
-``` 
+nop # (0x00000000)
+lw x15, 0(x0)
+addi x15, x15, 1
+jal x10, 8
+add x5, x3, x10
+add x5, x15, x10
+jal x11, 4
+jal x12, 4
+add x5, x11, x12
+add x5, x5, x3
+jal x13, 12
+add x20, x21, x3
+jal x14, -40
+lw x13, 4(x0)
+```
+
 * Note: If you want to know what instructions are being executed for each test, you can decode the hexadecimal numbers. [https://luplab.gitlab.io/rvcodecjs/](https://luplab.gitlab.io/rvcodecjs/) is a good website that can encode/decode RISC-V instructions. E.g. `0x00c006ef \= jal x13, 12`
 
 # **Template Modifications[¶](https://github.gatech.edu/pages/ECE3058/website/labs/pipelined/pipelined/#template-modifications)**
@@ -363,12 +297,6 @@ You are free to modify the given template as desired. However our autograders do
 * `Register Module` in `ID_Stage.sv`  
 * `Instruction Memory Module` in `IF_Stage.sv`  
 * `DRAM Module` in `Core.sv`
-
-## **Submission[¶](https://github.gatech.edu/pages/ECE3058/website/labs/pipelined/pipelined/#submission)**
-
-### **Design Task Submission[¶](https://github.gatech.edu/pages/ECE3058/website/labs/pipelined/pipelined/#design-task-submission)**
-
-For the [Design Task](https://github.gatech.edu/pages/ECE3058/website/labs/pipelined/pipelined/#design-task) you must submit a single PDF document to GradeScope. The PDF should include the design diagram you created based on the [verilog code for lab 2](https://github.gatech.edu/pages/ECE3058/website/labs/pipelined/assignment.zip). The PDF should also include the completed pipeline instruction VS time table found in the [Design Task](https://github.gatech.edu/pages/ECE3058/website/labs/pipelined/pipelined/#design-task) section.
 
 ### **Coding Task Submission[¶](https://github.gatech.edu/pages/ECE3058/website/labs/pipelined/pipelined/#coding-task-submission)**
 
@@ -385,10 +313,6 @@ you'll end up with a file titled ece3058\_lab2\_submission.tar.gz that you will 
 Make sure you add comments for the changes. Do NOT submit different RTL directories for the different tasks
 
 For guidance/issues with running Make or bash scripts to debug or generate zip files for lab submission, follow the link [here](https://github.gatech.edu/pages/ECE3058/website/resources/compiling/compiling/)
-
-## **Note about the Autograder[¶](https://github.gatech.edu/pages/ECE3058/website/labs/pipelined/pipelined/#note-about-the-autograder)**
-
-The autograder does not try to match every signal bit for bit againsta reference based on the sample waveforms we've provided. The autograder only checks the RF and Mem after each cycle to make sure they are storing the correct values. The RF and Mem are what maintains the state of the execution at any given time and completely determines correctness. You should therefore be trying to match the memory and RF values.
 
 ## **A Hint on Verilog[¶](https://github.gatech.edu/pages/ECE3058/website/labs/pipelined/pipelined/#a-hint-on-verilog)**
 
