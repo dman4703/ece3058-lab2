@@ -54,20 +54,20 @@ module Stall_Control (
         */
 
         // make sure instr in EX is load, compare registers, stall for one cycle if necessary
-        if ((EX_instr_opcode_ip == OPCODE_LOAD) 
-            && ((EX_reg_dest_ip == ID_src1_addr_ip) 
-            || (EX_reg_dest_ip == ID_src2_addr_ip)) 
-            && (EX_reg_dest_ip != 5'd0)) begin
-          stall_op = 1'b1;
+        if ((EX_instr_opcode_ip === OPCODE_LOAD)
+            && ((EX_reg_dest_ip === ID_src1_addr_ip)
+            || (EX_reg_dest_ip === ID_src2_addr_ip))
+            && (EX_reg_dest_ip != 5'd0)) begin␊
+          stall_op = 1'b1;␊
         end
 
         // Stall if W stage is writing to a reg that D is trying to read (in same cycle)
-        if ((WB_write_reg_en_ip == 1'b1)
-            && (WB_reg_dest_ip != 5'd0)
-            && ((WB_reg_dest_ip == ID_src1_addr_ip)
-            || (WB_reg_dest_ip == ID_src2_addr_ip))) begin
-          stall_op = 1'b1;
-        end
+        if ((WB_write_reg_en_ip === 1'b1)
+            && (WB_reg_dest_ip != 5'd0)␊
+            && ((WB_reg_dest_ip === ID_src1_addr_ip)
+            || (WB_reg_dest_ip === ID_src2_addr_ip))) begin
+          stall_op = 1'b1;␊
+        end␊
 
       end
 
@@ -84,33 +84,33 @@ module Stall_Control (
         */
 
         // only rs1 is relevant
-        if ((EX_instr_opcode_ip == OPCODE_LOAD) 
-            && (EX_reg_dest_ip == ID_src1_addr_ip) 
-            && (EX_reg_dest_ip != 5'd0)) begin
-          stall_op = 1'b1;
+        if ((EX_instr_opcode_ip === OPCODE_LOAD)
+            && (EX_reg_dest_ip === ID_src1_addr_ip)
+            && (EX_reg_dest_ip != 5'd0)) begin␊
+          stall_op = 1'b1;␊
         end
 
         // Check for WB stall when D is reading reg that the W stage writes
-        if ((WB_write_reg_en_ip == 1'b1)
-            && (WB_reg_dest_ip != 5'd0)
-            && (WB_reg_dest_ip == ID_src1_addr_ip)) begin
-          stall_op = 1'b1;
-        end
+        if ((WB_write_reg_en_ip === 1'b1)
+            && (WB_reg_dest_ip != 5'd0)␊
+            && (WB_reg_dest_ip === ID_src1_addr_ip)) begin
+          stall_op = 1'b1;␊
+        end␊
       end
 
       OPCODE_LOAD: begin
         // Ld instruc read rs1 for the base address; check hazards same wat as imm instruc
-        if ((EX_instr_opcode_ip == OPCODE_LOAD)
-            && (EX_reg_dest_ip == ID_src1_addr_ip)
-            && (EX_reg_dest_ip != 5'd0)) begin
-          stall_op = 1'b1;
-        end
+        if ((EX_instr_opcode_ip === OPCODE_LOAD)
+            && (EX_reg_dest_ip === ID_src1_addr_ip)
+            && (EX_reg_dest_ip != 5'd0)) begin␊
+          stall_op = 1'b1;␊
+        end␊
 
-        if ((WB_write_reg_en_ip == 1'b1)
-            && (WB_reg_dest_ip != 5'd0)
-            && (WB_reg_dest_ip == ID_src1_addr_ip)) begin
-          stall_op = 1'b1;
-        end
+        if ((WB_write_reg_en_ip === 1'b1)
+            && (WB_reg_dest_ip != 5'd0)␊
+            && (WB_reg_dest_ip === ID_src1_addr_ip)) begin
+          stall_op = 1'b1;␊
+        end␊
       end
 
       default: begin
