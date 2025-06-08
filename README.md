@@ -88,6 +88,7 @@ In this lab, you will perform the following task:
 2. Currently the processor does not stall when the instruction following the load depends on it. The logic that needs to be repaired to add load-to-use stall is in the file `Stall_Control.sv`. Add support for writeback stalls. This is detailed in the 2nd specification above. For example, if an add instruction writes data back to the register file addr. in the same CLK cycle that another instr. is in the *Decode* and reading the same register file addr. then you need to stall for one cycle to allow the data to be written back to the register file so that on the next CLK cycle, the correct value can be read.  
 3. Implement data forwarding to the EX stage. There is a blank module called `FWD_CONT.sv` already created for you and instantiated within `Core.sv`. Feel free to modify the input/output ports if required in your implementation. Just how you checked for hazards in the `Stall_Control.sv` file, you will check for hazards and forward the correct value from EX/MEM or MEM/WB stage to the execute unit. Tips:
     
+    - Make sure to use `===` or `!==`; also use `&` not `&&`
     - In `FWD_Control.sv`:
         - In `OPCODE_OP`, you need to consider two main cases:
             1. you need to assign something to the `fa_mux` (corresponds to rs1), which gets results from either the execution stage or writeback stage.

@@ -53,18 +53,18 @@ module FWD_Control (
         * For Register Register instructions, what registers are relevant for you to check 
         */
         // Check hazards on rs1
-        if (EX_MEM_RegWrite_en && (EX_MEM_dest_ip != 5'd0)
-            && (EX_MEM_dest_ip === ID_dest_rs1_ip)) begin
+        if (EX_MEM_RegWrite_en & (EX_MEM_dest_ip !== 5'd0)
+            & (EX_MEM_dest_ip === ID_dest_rs1_ip)) begin
           fa_mux_op = EX_RESULT_SELECT;
-        end else if (MEM_WB_RegWrite_en && (MEM_WB_dest_ip != 5'd0)
-                    && (MEM_WB_dest_ip === ID_dest_rs1_ip)) begin
+        end else if (MEM_WB_RegWrite_en & (MEM_WB_dest_ip !== 5'd0)
+                    & (MEM_WB_dest_ip === ID_dest_rs1_ip)) begin
           fa_mux_op = WB_RESULT_SELECT;
         end
         // Check hazards on rs2
-        if (EX_MEM_RegWrite_en && (EX_MEM_dest_ip != 5'd0) &&
+        if (EX_MEM_RegWrite_en & (EX_MEM_dest_ip !== 5'd0) &
             (EX_MEM_dest_ip === ID_dest_rs2_ip)) begin
           fb_mux_op = EX_RESULT_SELECT;
-        end else if (MEM_WB_RegWrite_en && (MEM_WB_dest_ip != 5'd0) &&
+        end else if (MEM_WB_RegWrite_en & (MEM_WB_dest_ip !== 5'd0) &
                      (MEM_WB_dest_ip === ID_dest_rs2_ip)) begin
           fb_mux_op = WB_RESULT_SELECT;
         end
@@ -78,22 +78,22 @@ module FWD_Control (
         * Here you will need to check for hazards and decide if and what you will forward 
         * For Register Register instructions, what registers are relevant for you to check
         */
-        if (EX_MEM_RegWrite_en && (EX_MEM_dest_ip != 5'd0)
-            && (EX_MEM_dest_ip === ID_dest_rs1_ip)) begin
+        if (EX_MEM_RegWrite_en & (EX_MEM_dest_ip !== 5'd0)
+            & (EX_MEM_dest_ip === ID_dest_rs1_ip)) begin
           fa_mux_op = EX_RESULT_SELECT;
-        end else if (MEM_WB_RegWrite_en && (MEM_WB_dest_ip != 5'd0)
-                    && (MEM_WB_dest_ip === ID_dest_rs1_ip)) begin
+        end else if (MEM_WB_RegWrite_en & (MEM_WB_dest_ip !== 5'd0)
+                    & (MEM_WB_dest_ip === ID_dest_rs1_ip)) begin
           fa_mux_op = WB_RESULT_SELECT;
         end
       end
 
       OPCODE_LOAD: begin
         // same as imm
-        if (EX_MEM_RegWrite_en && (EX_MEM_dest_ip != 5'd0)
-            && (EX_MEM_dest_ip === ID_dest_rs1_ip)) begin
+        if (EX_MEM_RegWrite_en & (EX_MEM_dest_ip !== 5'd0)
+            & (EX_MEM_dest_ip === ID_dest_rs1_ip)) begin
           fa_mux_op = EX_RESULT_SELECT;
-        end else if (MEM_WB_RegWrite_en && (MEM_WB_dest_ip != 5'd0)
-                    && (MEM_WB_dest_ip === ID_dest_rs1_ip)) begin
+        end else if (MEM_WB_RegWrite_en & (MEM_WB_dest_ip !== 5'd0)
+                    & (MEM_WB_dest_ip === ID_dest_rs1_ip)) begin
           fa_mux_op = WB_RESULT_SELECT;
         end
       end
