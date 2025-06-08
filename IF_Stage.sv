@@ -54,7 +54,7 @@ module IF_Stage (
 
     if (reset == 1'b1) 
       Next_PC = 0;
-    else if (stall_ip == 1'b1)
+    else if ((stall_ip == 1'b1) && (flush_ip == 1'b0))
       Next_PC = pc_addr;  // Hold PC during stall
     else begin
       unique case (pc_mux_ip)
