@@ -90,6 +90,7 @@ In this lab, you will perform the following task:
     
     - Make sure to use `===` or `!==`; also use `&` not `&&`
     - In `FWD_Control.sv`:
+        - YOU ONLY NEED THE CASES `OPCODE_OP` AND `OPCODE_OPIMM`, NO OTHERS
         - In `OPCODE_OP`, you need to consider two main cases:
             1. you need to assign something to the `fa_mux` (corresponds to rs1), which gets results from either the execution stage or writeback stage.
             2. you need to do something with fb_mux (corresponds to rs2), which gets results from the execution stage or writeback stage.

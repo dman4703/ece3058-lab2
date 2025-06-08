@@ -119,7 +119,9 @@ module EX_Stage (
       EX_RESULT_SELECT: begin
         alu_operand_a = alu_result_op;
       end
-      MEM_RESULT_SELECT,
+      MEM_RESULT_SELECT: begin
+        alu_operand_a = fw_wb_data;
+      end
       WB_RESULT_SELECT: begin
         alu_operand_a = fw_wb_data;
       end
@@ -138,7 +140,9 @@ module EX_Stage (
       EX_RESULT_SELECT: begin
         alu_operand_b = alu_result_op;
       end
-      MEM_RESULT_SELECT,
+      MEM_RESULT_SELECT: begin
+        alu_operand_b = fw_wb_data;
+      end
       WB_RESULT_SELECT: begin
         alu_operand_b = fw_wb_data;
       end

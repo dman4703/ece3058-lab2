@@ -35,14 +35,32 @@ module FWD_Control (
   logic EX_MEM_RegWrite_en;
   logic MEM_WB_RegWrite_en;
 
-  assign EX_MEM_RegWrite_en = (EX_MEM_wb_mux_ip === NO_WRITEBACK) ? 1'b0 : 1'b1;
-  assign MEM_WB_RegWrite_en = (MEM_WB_wb_mux_ip === NO_WRITEBACK) ? 1'b0 : 1'b1;
+  assign EX_MEM_RegWrite_en = (EX_MEM_wb_mux_ip == NO_WRITEBACK) ? 1'b0 : 1'b1;
+  assign MEM_WB_RegWrite_en = (MEM_WB_wb_mux_ip == NO_WRITEBACK) ? 1'b0 : 1'b1;
 
   always @(*) begin
     fa_mux_op = ORIGINAL_SELECT;
     fb_mux_op = ORIGINAL_SELECT;
 
     case (id_instr_opcode_ip)
+
+      /**
+        EX Hazard
+        if (EX/MEM.RegWrite and (EX/MEM.RegisterRd != 0) and (EX/MEM.RegisterRd = ID/EX.Register.Rs1)) { 
+          FwdA --> EX/MEM 
+        }
+        if (EX/MEM.RegWrite and (EX/MEM.RegisterRd != 0) and (EX/MEM.RegisterRd = ID/EX.Register.Rs2)) { 
+          FwdB --> EX/MEM 
+        }
+
+        MEM hazard
+        if (MEM/WB.RegWrite and (MEM/WB.RegisterRD != 0) and (MEM/WB.RegisterRD = ID/EX.RegisterRs1)) {
+          Fwd A --> MEM/WB
+        }
+        if (MEM/WB.RegWrite and (MEM/WB.RegisterRD != 0) and (MEM/WB.RegisterRD = ID/EX.RegisterRs2)) {
+          Fwd B --> MEM/WB
+        }
+      */
 
       OPCODE_OP: begin // Register-Register ALU operation
 
@@ -52,22 +70,9 @@ module FWD_Control (
         * Here you will need to check for hazards and decide if and what you will forward 
         * For Register Register instructions, what registers are relevant for you to check 
         */
-        // Check hazards on rs1
-        if (EX_MEM_RegWrite_en & (EX_MEM_dest_ip !== 5'd0)
-            & (EX_MEM_dest_ip === ID_dest_rs1_ip)) begin
-          fa_mux_op = EX_RESULT_SELECT;
-        end else if (MEM_WB_RegWrite_en & (MEM_WB_dest_ip !== 5'd0)
-                    & (MEM_WB_dest_ip === ID_dest_rs1_ip)) begin
-          fa_mux_op = WB_RESULT_SELECT;
-        end
-        // Check hazards on rs2
-        if (EX_MEM_RegWrite_en & (EX_MEM_dest_ip !== 5'd0) &
-            (EX_MEM_dest_ip === ID_dest_rs2_ip)) begin
-          fb_mux_op = EX_RESULT_SELECT;
-        end else if (MEM_WB_RegWrite_en & (MEM_WB_dest_ip !== 5'd0) &
-                     (MEM_WB_dest_ip === ID_dest_rs2_ip)) begin
-          fb_mux_op = WB_RESULT_SELECT;
-        end
+        // you need to consider two main cases:
+        // case 1: you need to assign something to the fa_mux (corresponds to rs1), which gets results from either the execution stage or writeback stage.
+        // case 2: you need to do something with fb_mux (corresponds to rs2), which gets results from the execution stage or writeback stage.
       end
 
       OPCODE_OPIMM: begin // Register Immediate 
@@ -78,24 +83,9 @@ module FWD_Control (
         * Here you will need to check for hazards and decide if and what you will forward 
         * For Register Register instructions, what registers are relevant for you to check
         */
-        if (EX_MEM_RegWrite_en & (EX_MEM_dest_ip !== 5'd0)
-            & (EX_MEM_dest_ip === ID_dest_rs1_ip)) begin
-          fa_mux_op = EX_RESULT_SELECT;
-        end else if (MEM_WB_RegWrite_en & (MEM_WB_dest_ip !== 5'd0)
-                    & (MEM_WB_dest_ip === ID_dest_rs1_ip)) begin
-          fa_mux_op = WB_RESULT_SELECT;
-        end
-      end
-
-      OPCODE_LOAD: begin
-        // same as imm
-        if (EX_MEM_RegWrite_en & (EX_MEM_dest_ip !== 5'd0)
-            & (EX_MEM_dest_ip === ID_dest_rs1_ip)) begin
-          fa_mux_op = EX_RESULT_SELECT;
-        end else if (MEM_WB_RegWrite_en & (MEM_WB_dest_ip !== 5'd0)
-                    & (MEM_WB_dest_ip === ID_dest_rs1_ip)) begin
-          fa_mux_op = WB_RESULT_SELECT;
-        end
+        // one main case to consider:
+        // case 1: you need to assign something to the fa_mux (corresponds to rs1), which gets results from either the execution stage or writeback stage.
+        
       end
 
     endcase
