@@ -58,7 +58,7 @@ module FWD_Control (
           fa_mux_op = EX_RESULT_SELECT;
         end else if (MEM_WB_RegWrite_en && (MEM_WB_dest_ip != 5'd0)
                     && (MEM_WB_dest_ip === ID_dest_rs1_ip)) begin
-          fa_mux_op = MEM_RESULT_SELECT;
+          fa_mux_op = WB_RESULT_SELECT;
         end
         // Check hazards on rs2
         if (EX_MEM_RegWrite_en && (EX_MEM_dest_ip != 5'd0) &&
@@ -66,7 +66,7 @@ module FWD_Control (
           fb_mux_op = EX_RESULT_SELECT;
         end else if (MEM_WB_RegWrite_en && (MEM_WB_dest_ip != 5'd0) &&
                      (MEM_WB_dest_ip === ID_dest_rs2_ip)) begin
-          fb_mux_op = MEM_RESULT_SELECT;
+          fb_mux_op = WB_RESULT_SELECT;
         end
       end
 
@@ -83,7 +83,7 @@ module FWD_Control (
           fa_mux_op = EX_RESULT_SELECT;
         end else if (MEM_WB_RegWrite_en && (MEM_WB_dest_ip != 5'd0)
                     && (MEM_WB_dest_ip === ID_dest_rs1_ip)) begin
-          fa_mux_op = MEM_RESULT_SELECT;
+          fa_mux_op = WB_RESULT_SELECT;
         end
       end
 
@@ -94,7 +94,7 @@ module FWD_Control (
           fa_mux_op = EX_RESULT_SELECT;
         end else if (MEM_WB_RegWrite_en && (MEM_WB_dest_ip != 5'd0)
                     && (MEM_WB_dest_ip === ID_dest_rs1_ip)) begin
-          fa_mux_op = MEM_RESULT_SELECT;
+          fa_mux_op = WB_RESULT_SELECT;
         end
       end
 
