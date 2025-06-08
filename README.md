@@ -128,57 +128,7 @@ In this lab, you will perform the following task:
         - You will want to consider the cases when `fa_mux_ip` is `EX_RESULT_SELECT`, `MEM_RESULT_SELECT`, and `WB_RESULT_SELECT`. In each of these scenarios, we want to assign something to `alu_operand_a`; something like `EX_RESULT_SELECT: alu_operand_a = ?`. Hint: what you can assign to operand a would be related to `input logic [31:0] fw_wb_data` (data from the forward controller) OR it would be related to `output logic [31:0] alu_result_op` (data that is being routed back to the execution stage).
         - The same advice applies to `fb_mux_ip`, except now we are assigning `alu_operand_b`
 
-4. Implement flushing in the pipeline. Note specification 4 above. Thus, the fetch stage will keep fetching instructions through `PC + 4` until the jump condition is resolved. Flushing out will mean clearing out the relevant (before branch resolution) registers. Tips:
-    - `EX_Stage.sv` outputs the flush signal. That flush signal will be used as an input in `IF_Stage.sv` and `ID_stage.sv`.
-    - Thus, in `Core.sv`:
-        - Define `logic flush_signal`.
-        - In `IF_Stage InstructionFetch_Module`, declare a flush input signal; it takes the flush en signal
-        - In `ID_Stage InstructionDecode_Module`, declare a flush input signal; it takes the flush en signal
-        - In `EX_Stage InstructionExecute_Module`, declare a flush output signal; it takes the flush en signal
-    - In `IF_Stage.sv`:
-        - Declare the flush_ip signal that was added to `Core.sv`
-        - Flush in this context is very much like reset, so you may be able to reference/make use of the reset code for when the flush signal is on:
-            ```
-            // IF/ID Pipeline Buffer
-            always_ff @(posedge clock) begin
-		        if ((reset == 1'b1)) begin
-			        instr_valid_op <= 0;
-			        instr_data_op <= 0;
-			        instr_pc_addr_op <= 0;
-		        end
-                ...
-            ```
-    - In `ID_Stage.sv`:
-        - Declare the flush_ip signal that was added to `Core.sv`
-        - Again, flush is very much like reset, so you can make use of the reset code:
-            ```
-            // ID_EX Pipeline Buffer
-            always_ff @(posedge clock) begin
-                if ((stall_op == 1'b1) | (reset == 1'b1)) begin // check flush signal
-                    // Instructions to send to EX Stage
-                    alu_en_op <= 0;
-                    alu_operator_op <= ALU_NOP;
-                    alu_operand_a_ex_op <= 0;
-                    alu_operand_b_ex_op <= 0;
-                ...
-            ```        
-    - In `EX_Stage.sv`:
-        - Declare the flush output signal.
-        - Looking at the `pc_mux_ip`, what should the flush en signal be in default? What should your flush en signal be in ALU_RESULT case?
-            ```
-            case (pc_mux_ip) 
-                ALU_RESULT: begin
-                    next_PC_addr_valid_op = alu_valid;
-                    next_PC_addr_op = alu_result;
-                    // What should the flush en signal be in ALU_RESULT case?
-                end
-                default begin
-                    next_PC_addr_valid_op = 0;
-                    next_PC_addr_op = 0;
-                    // what should the flush en signal be in default?
-                end
-            endcase
-            ```
+4. Implement flushing in the pipeline. Note specification 4 above. Thus, the fetch stage will keep fetching instructions through `PC + 4` until the jump condition is resolved. Flushing out will mean clearing out the relevant (before branch resolution) registers.
 
 **Functionally all the processor should still be generating correct logic after all the changes to implementing stalling, forwarding, and flushing.**
 
@@ -256,36 +206,6 @@ addi x2, x2, -20
 lw x1, 4(x0)    
 ```
 
-* Task 4 Jal. [here](https://github.gatech.edu/pages/ECE3058/website/labs/pipelined/Task4_Jal.vcd)
-```
-nop # (0x00000000)
-add x5, x5, x2
-sub x4, x12, x7
-jal x10, -8
-sub x5, x4, x5
-addi x6, x4, 12
-```
-
-* Task 4 Jal Complex [here](https://github.gatech.edu/pages/ECE3058/website/labs/pipelined/Task4_Jal_Complex.vcd)
-```
-nop # (0x00000000)
-lw x15, 0(x0)
-addi x15, x15, 1
-jal x10, 8
-add x5, x3, x10
-add x5, x15, x10
-jal x11, 4
-jal x12, 4
-add x5, x11, x12
-add x5, x5, x3
-jal x13, 12
-add x20, x21, x3
-jal x14, -40
-lw x13, 4(x0)
-```
-
-* Note: If you want to know what instructions are being executed for each test, you can decode the hexadecimal numbers. [https://luplab.gitlab.io/rvcodecjs/](https://luplab.gitlab.io/rvcodecjs/) is a good website that can encode/decode RISC-V instructions. E.g. `0x00c006ef \= jal x13, 12`
-
 # **Template Modifications[¶](https://github.gatech.edu/pages/ECE3058/website/labs/pipelined/pipelined/#template-modifications)**
 
 You are free to modify the given template as desired. However our autograders do drive custom instruction streams and read corresponding outputs to check for correctness so we HIGHLY recommend working off of the given template. If you do make major changes (restructuring wholes files NOT adding a couple of wires), below is the list of verilog wires, modules, and filenames that we ask you do not modify. Please also make sure your processor still follows the specifications detailed above and is based on the architecture given in class. We also ask that you do not rename any of the file names for our autograder purposes.
@@ -330,7 +250,7 @@ Example: `a \== b; // Returns true if 'a' and 'b' are both 0 or both 1\.`
 3. It compares two values while considering "unknown" (x or z) values as well.  
 4. It returns true if the two values are identical, even if they contain "unknown" values. It returns false if they differ in any way, including the presence of "unknown" values.
 
-Example: `a \=== b; // Returns true if 'a' and 'b' are identical, including 'x' and 'z' values.`
+Example: `a === b; // Returns true if 'a' and 'b' are identical, including 'x' and 'z' values.`
 
 In summary, the Double Equal is a simple equality comparison operator that only considers 0 and 1, while the Triple Equal is used for case equality and considers "unknown" values in the comparison.
 
